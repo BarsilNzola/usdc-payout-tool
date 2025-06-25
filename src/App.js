@@ -3,7 +3,6 @@ import WalletConnect from './components/WalletConnect';
 import CSVUploader from './components/CSVUploader';
 import PayoutSender from './components/PayoutSender';
 import PayoutHistory from './components/PayoutHistory';
-import { ethers } from 'ethers';
 import './styles.css';
 
 function App() {
