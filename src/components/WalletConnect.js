@@ -15,7 +15,7 @@ const USDC_ADDRESS = {
   10: '0x7F5c764cBc14f9669B88837ca1490cCa17c31607',
 };
 
-function WalletConnect() {
+function WalletConnect({ onConnected }) {
   const [account, setAccount] = useState(null);
   const [chainId, setChainId] = useState(null);
   const [usdcBalance, setUsdcBalance] = useState(null);
@@ -35,6 +35,7 @@ function WalletConnect() {
 
     const { chainId } = await ethersProvider.getNetwork();
     setChainId(Number(chainId));
+    onConnected && onConnected({ signer, chainId: Number(chainId) });
 
     await fetchUSDCBalance(address, Number(chainId), ethersProvider);
   };
