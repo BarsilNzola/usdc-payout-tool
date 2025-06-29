@@ -10,37 +10,52 @@ const USDC_ADDRESS = {
   10: '0x7F5c764cBc14f9669B88837ca1490cCa17c31607',
 };
 
+// Initialize LI.FI with error handling
+let lifi;
+try {
+  lifi = new LiFi({
+    integrator: 'USDC_Payout_Hackathon',
+    apiKey: process.env.REACT_APP_LIFI_API_KEY,
+  });
+} catch (error) {
+  console.error('LI.FI initialization failed:', error);
+}
+
 function PayoutSender({ payouts, signer, chainId, walletAddress }) {
   const [status, setStatus] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [results, setResults] = useState([]);
-  const [currentStep, setCurrentStep] = useState(0); // For step tracker
 
-  const lifi = new LiFi({ integrator: 'USDC_Payout_Hackathon' });
-
-  const sendCrossChainPayout = async ({ address, amount, toChainId }) => {
-    try {
-      setStatus(`Routing USDC to chain ${toChainId}...`);
-      setCurrentStep(1);
-
-      const route = await lifi.getRoutes({
-        fromChainId: chainId,
-        toChainId,
-        fromTokenAddress: USDC_ADDRESS[chainId],
-        toTokenAddress: USDC_ADDRESS[toChainId],
-        fromAmount: ethers.parseUnits(amount, 6).toString(),
-        fromAddress: walletAddress,
-        toAddress: address,
-      });
-
-      setCurrentStep(2);
-      setStatus(`Sending ${amount} USDC...`);
-      
-      const result = await lifi.executeRoute(route, signer);
-      return { txHash: result.transactionHash, toChainId };
-    } catch (error) {
-      throw error;
+  const sendCrossChainPayout = async (payout) => {
+    if (!lifi) throw new Error('LI.FI not initialized');
+    
+    const { address, amount, chainId: toChainId } = payout;
+    
+    // Validate chain support
+    if (!USDC_ADDRESS[chainId] || !USDC_ADDRESS[toChainId]) {
+      throw new Error(`Unsupported chain pair: ${chainId}→${toChainId}`);
     }
+
+    const route = await lifi.getRoutes({
+      fromChainId: chainId,
+      toChainId,
+      fromTokenAddress: USDC_ADDRESS[chainId],
+      toTokenAddress: USDC_ADDRESS[toChainId],
+      fromAmount: ethers.parseUnits(amount, 6).toString(),
+      fromAddress: walletAddress,
+      toAddress: address,
+    });
+
+    if (!route.routes.length) {
+      throw new Error('No route found');
+    }
+
+    const result = await lifi.executeRoute(route.routes[0], signer);
+    return {
+      txHash: result.transactionHash,
+      toChainId,
+      gasUsed: result.gasUsed,
+    };
   };
 
   const sendPayouts = async () => {
