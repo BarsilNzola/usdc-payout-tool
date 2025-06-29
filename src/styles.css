@@ -6,6 +6,21 @@ body {
   color: #333;
 }
 
+.app-header {
+  background-color: #2c3e50;
+  padding: 20px 0;
+  text-align: center;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+.app-header,
+.app-header h1,
+.app-header * {
+  color: white !important;
+}
+
+
 .app-container {
   max-width: 900px;
   margin: 40px auto;
@@ -45,4 +60,15 @@ button:hover {
 input[type="file"] {
   font-size: 16px;
   margin-top: 10px;
+}
+
+.app-footer {
+  background-color: #f1f1f1;
+  padding: 20px;
+  margin-top: 40px;
+  border-radius: 8px;
+  text-align: center;
+  font-size: 14px;
+  color: #444;
+  line-height: 1.6;
 }

@@ -17,23 +17,36 @@ function App() {
 
   return (
     <div className="app-container">
-      <h1 className="app-title">USDC Payout Tool</h1>
+      <header className="app-header">
+        <h1 className="app-title">USDC Payout Tool</h1>
+      </header>
 
-      <div className="card">
-        <WalletConnect onConnected={handleWalletData} />
-      </div>
+      <main>
+        <div className="card">
+          <WalletConnect onConnected={handleWalletData} />
+        </div>
 
-      <div className="card">
-        <CSVUploader onDataParsed={setPayouts} />
-      </div>
+        <div className="card">
+          <CSVUploader onDataParsed={setPayouts} />
+        </div>
 
-      <div className="card">
-        <PayoutSender payouts={payouts} signer={signer} chainId={chainId} />
-      </div>
+        <div className="card">
+          <PayoutSender payouts={payouts} signer={signer} chainId={chainId} />
+        </div>
 
-      <div className="card">
-        <PayoutHistory />
-      </div>
+        <div className="card">
+          <PayoutHistory />
+        </div>
+      </main>
+
+      <footer className="app-footer">
+        <p>
+          💰 <strong>Donate</strong>:<br />
+          <strong>Bitcoin (BTC):</strong> bc1q9wnzq42c0nz8659hajq3820e5pgn5t342e2wcz<br />
+          <strong>Ethereum (ETH):</strong> 0x78fE31D333aec6Be5EBF57854b635f3d1C614F22
+        </p>
+        <p>📧 <strong>Contact:</strong> theforeverknights1@gmail.com</p>
+      </footer>
     </div>
   );
 }
