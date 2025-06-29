@@ -10,19 +10,30 @@ function App() {
   const [signer, setSigner] = useState(null);
   const [chainId, setChainId] = useState(null);
 
-  // Accept signer and chainId from WalletConnect
   const handleWalletData = ({ signer, chainId }) => {
     setSigner(signer);
     setChainId(chainId);
   };
 
   return (
-    <div className="App">
-      <h1>USDC Payout Tool</h1>
-      <WalletConnect onConnected={handleWalletData} />
-      <CSVUploader onDataParsed={setPayouts} />
-      <PayoutSender payouts={payouts} signer={signer} chainId={chainId} />
-      <PayoutHistory />
+    <div className="app-container">
+      <h1 className="app-title">USDC Payout Tool</h1>
+
+      <div className="card">
+        <WalletConnect onConnected={handleWalletData} />
+      </div>
+
+      <div className="card">
+        <CSVUploader onDataParsed={setPayouts} />
+      </div>
+
+      <div className="card">
+        <PayoutSender payouts={payouts} signer={signer} chainId={chainId} />
+      </div>
+
+      <div className="card">
+        <PayoutHistory />
+      </div>
     </div>
   );
 }
