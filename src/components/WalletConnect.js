@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import detectEthereumProvider from '@metamask/detect-provider';
+import { MetaMaskSDK } from '@metamask/sdk';
 import { ethers } from 'ethers';
 
 const USDC_ABI = [
@@ -18,16 +18,17 @@ function WalletConnect({ onConnected }) {
   const [account, setAccount] = useState(null);
   const [chainId, setChainId] = useState(null);
   const [usdcBalance, setUsdcBalance] = useState(null);
-  const [status, setStatus] = useState('disconnected'); // ✅ status state
+  const [status, setStatus] = useState('disconnected');
 
   const connectWallet = async () => {
-    const provider = await detectEthereumProvider();
-
-    if (!provider || !provider.isMetaMask) {
-      return alert('Only MetaMask is supported. Please install or switch to MetaMask.');
-    }
-
     try {
+      const MMSDK = new MetaMaskSDK({ dappMetadata: { name: 'USDC Payout Tool' } });
+      const provider = MMSDK.getProvider();
+
+      if (!provider) {
+        throw new Error('MetaMask not installed!');
+      }
+
       await provider.request({ method: 'eth_requestAccounts' });
       const ethersProvider = new ethers.BrowserProvider(provider);
       const signer = await ethersProvider.getSigner();
@@ -39,14 +40,13 @@ function WalletConnect({ onConnected }) {
       const chainIdNumber = Number(chainId);
       setChainId(chainIdNumber);
 
-      onConnected && onConnected({ signer, chainId: chainIdNumber });
-
+      onConnected?.({ signer, chainId: chainIdNumber });
       await fetchUSDCBalance(address, chainIdNumber, ethersProvider);
-      setStatus('connected'); // ✅ set status
+      setStatus('connected');
     } catch (error) {
       console.error('Connection error:', error);
-      alert('Failed to connect to MetaMask.');
       setStatus('disconnected');
+      alert(`Failed: ${error.message}`);
     }
   };
 
@@ -64,43 +64,32 @@ function WalletConnect({ onConnected }) {
   };
 
   return (
-    <div>
-      <div style={{ marginBottom: '10px' }}>
-        <button
-          onClick={connectWallet}
-          style={{
-            padding: '10px 16px',
-            backgroundColor: status === 'connected' ? '#28a745' : '#007bff',
-            color: 'white',
-            border: 'none',
-            borderRadius: '5px',
-            cursor: 'pointer',
-            fontWeight: 'bold',
-          }}
-        >
-          {account ? 'Connected ✅' : 'Connect MetaMask'}
-        </button>
-
-        <span
-          style={{
-            marginLeft: '12px',
-            padding: '6px 10px',
-            borderRadius: '5px',
-            backgroundColor: status === 'connected' ? '#28a745' : '#dc3545',
-            color: 'white',
-            fontWeight: 'bold',
-            fontSize: '14px',
-          }}
-        >
-          {status === 'connected' ? 'Connected' : 'Disconnected'}
-        </span>
+    <div className="wallet-connect-card">
+      <div className="flex justify-between items-start">
+        <div>
+          <button
+            onClick={connectWallet}
+            className={`connect-button ${status === 'connected' ? 'connected' : ''}`}
+          >
+            {account ? 'Connected ✅' : 'Connect MetaMask'}
+          </button>
+          <span className={`status-badge ${status === 'connected' ? 'connected' : ''}`}>
+            {status === 'connected' ? 'Connected' : 'Disconnected'}
+          </span>
+        </div>
+        
+        <div className="metamask-card-blurb">
+          <h3>💳 Spend USDC Instantly</h3>
+          <p>Recipients can use MetaMask Card to spend without converting to fiat.</p>
+          <a href="https://metamask.io/card" target="_blank">Learn more</a>
+        </div>
       </div>
 
       {account && (
-        <div style={{ backgroundColor: '#f8f9fa', padding: '15px', borderRadius: '8px' }}>
+        <div className="wallet-info">
           <p><strong>Wallet:</strong> {account}</p>
           <p><strong>Chain ID:</strong> {chainId}</p>
-          <p><strong>USDC Balance:</strong> {usdcBalance}</p>
+          <p><strong>USDC Balance:</strong> {usdcBalance || 'Loading...'}</p>
         </div>
       )}
     </div>
