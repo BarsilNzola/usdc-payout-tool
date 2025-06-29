@@ -22,22 +22,31 @@ function WalletConnect({ onConnected }) {
 
   const connectWallet = async () => {
     const provider = await detectEthereumProvider();
-    if (!provider) {
-      return alert('Please install MetaMask.');
+
+    // ❗ Add MetaMask-only check
+    if (!provider || !provider.isMetaMask) {
+      return alert('Only MetaMask is supported. Please install or switch to MetaMask.');
     }
 
-    await provider.request({ method: 'eth_requestAccounts' });
-    const ethersProvider = new ethers.BrowserProvider(provider);
-    const signer = await ethersProvider.getSigner();
+    try {
+      await provider.request({ method: 'eth_requestAccounts' });
+      const ethersProvider = new ethers.BrowserProvider(provider);
+      const signer = await ethersProvider.getSigner();
 
-    const address = await signer.getAddress();
-    setAccount(address);
+      const address = await signer.getAddress();
+      setAccount(address);
 
-    const { chainId } = await ethersProvider.getNetwork();
-    setChainId(Number(chainId));
-    onConnected && onConnected({ signer, chainId: Number(chainId) });
+      const { chainId } = await ethersProvider.getNetwork();
+      const chainIdNumber = Number(chainId);
+      setChainId(chainIdNumber);
 
-    await fetchUSDCBalance(address, Number(chainId), ethersProvider);
+      onConnected && onConnected({ signer, chainId: chainIdNumber });
+
+      await fetchUSDCBalance(address, chainIdNumber, ethersProvider);
+    } catch (error) {
+      console.error('Connection error:', error);
+      alert('Failed to connect to MetaMask.');
+    }
   };
 
   const fetchUSDCBalance = async (walletAddress, chainId, ethersProvider) => {
