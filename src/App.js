@@ -3,49 +3,94 @@ import WalletConnect from './components/WalletConnect';
 import CSVUploader from './components/CSVUploader';
 import PayoutSender from './components/PayoutSender';
 import PayoutHistory from './components/PayoutHistory';
+import Dashboard from './components/Dashboard';
 import './styles.css';
 
 function App() {
   const [payouts, setPayouts] = useState([]);
   const [signer, setSigner] = useState(null);
   const [chainId, setChainId] = useState(null);
+  const [walletAddress, setWalletAddress] = useState(null);
 
   const handleWalletData = ({ signer, chainId }) => {
-    setSigner(signer);
-    setChainId(chainId);
+    const update = async () => {
+      const address = await signer.getAddress();
+      setSigner(signer);
+      setChainId(chainId);
+      setWalletAddress(address);
+    };
+    update();
   };
 
   return (
     <div className="app-container">
       <header className="app-header">
-        <h1 className="app-title">USDC Payout Tool</h1>
+        <h1 className="app-title">Cross-Chain USDC Payout Tool</h1>
+        <p className="app-subtitle">
+          Send batch payments across Ethereum, Polygon, Arbitrum & Optimism
+        </p>
       </header>
 
       <main>
-        <div className="card">
+        {/* Connection Card */}
+        <div className="card connection-card">
           <WalletConnect onConnected={handleWalletData} />
         </div>
 
-        <div className="card">
-          <CSVUploader onDataParsed={setPayouts} />
+        {/* Dashboard Stats */}
+        {walletAddress && (
+          <div className="card stats-card">
+            <Dashboard history={JSON.parse(localStorage.getItem(`payoutHistory_${walletAddress.toLowerCase()}`)) || []} />
+          </div>
+        )}
+
+        {/* CSV Upload */}
+        <div className="card upload-card">
+          <CSVUploader 
+            onDataParsed={(data) => setPayouts(data)} 
+          />
+          {payouts.length > 0 && (
+            <div className="payout-summary">
+              <strong>Ready to send:</strong> {payouts.length} payouts across{' '}
+              {new Set(payouts.map(p => p.chainId)).size} chains
+            </div>
+          )}
         </div>
 
-        <div className="card">
-          <PayoutSender payouts={payouts} signer={signer} chainId={chainId} />
-        </div>
+        {/* Payout Sender */}
+        {signer && (
+          <div className="card sender-card">
+            <PayoutSender 
+              payouts={payouts} 
+              signer={signer} 
+              chainId={chainId}
+              walletAddress={walletAddress}
+            />
+          </div>
+        )}
 
-        <div className="card">
-          <PayoutHistory />
-        </div>
+        {/* History */}
+        {walletAddress && (
+          <div className="card history-card">
+            <PayoutHistory walletAddress={walletAddress} />
+          </div>
+        )}
       </main>
 
       <footer className="app-footer">
-        <p>
-          💰 <strong>Donate</strong>:<br />
-          <strong>Bitcoin (BTC):</strong> bc1q9wnzq42c0nz8659hajq3820e5pgn5t342e2wcz<br />
-          <strong>Ethereum (ETH):</strong> 0x78fE31D333aec6Be5EBF57854b635f3d1C614F22
-        </p>
-        <p>📧 <strong>Contact:</strong> theforeverknights1@gmail.com</p>
+        <div className="footer-section">
+          <h3>Powered By</h3>
+          <div className="tech-stack">
+            <img src="https://li.fi/logo.svg" alt="LI.FI" width="80" />
+            <img src="https://metamask.io/metamask-icon.svg" alt="MetaMask" width="30" />
+            <img src="https://cctp.circle.com/logo.svg" alt="CCTP" width="80" />
+          </div>
+        </div>
+        <div className="footer-section">
+          <p>
+            <strong>Need help?</strong> Contact: theforeverknights1@gmail.com
+          </p>
+        </div>
       </footer>
     </div>
   );

@@ -1,96 +1,125 @@
 import React, { useState } from 'react';
+import { LiFi } from '@lifi/sdk';
 import { ethers } from 'ethers';
 
-const USDC_ABI = [
-  "function transfer(address to, uint256 amount) returns (bool)",
-  "function decimals() view returns (uint8)"
-];
-
+const USDC_ABI = ["function decimals() view returns (uint8)"];
 const USDC_ADDRESS = {
   1: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
   137: '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174',
-  42161: '0xff970a61f2de4661ED88A30C99A7a9449Aa84174',
+  42161: '0xff970a61a04b1ca14834a43f5de4533ebddb5cc8',
   10: '0x7F5c764cBc14f9669B88837ca1490cCa17c31607',
 };
 
 function PayoutSender({ payouts, signer, chainId, walletAddress }) {
-  const [status, setStatus] = useState(null);
+  const [status, setStatus] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [results, setResults] = useState([]);
+  const [currentStep, setCurrentStep] = useState(0); // For step tracker
+
+  const lifi = new LiFi({ integrator: 'USDC_Payout_Hackathon' });
+
+  const sendCrossChainPayout = async ({ address, amount, toChainId }) => {
+    try {
+      setStatus(`Routing USDC to chain ${toChainId}...`);
+      setCurrentStep(1);
+
+      const route = await lifi.getRoutes({
+        fromChainId: chainId,
+        toChainId,
+        fromTokenAddress: USDC_ADDRESS[chainId],
+        toTokenAddress: USDC_ADDRESS[toChainId],
+        fromAmount: ethers.parseUnits(amount, 6).toString(),
+        fromAddress: walletAddress,
+        toAddress: address,
+      });
+
+      setCurrentStep(2);
+      setStatus(`Sending ${amount} USDC...`);
+      
+      const result = await lifi.executeRoute(route, signer);
+      return { txHash: result.transactionHash, toChainId };
+    } catch (error) {
+      throw error;
+    }
+  };
 
   const sendPayouts = async () => {
-    if (!signer || !chainId || !walletAddress) {
-      setStatus('Wallet not connected or unsupported network.');
-      return;
-    }
-
-    const usdcAddress = USDC_ADDRESS[chainId];
-    if (!usdcAddress) {
-      setStatus('Unsupported network.');
+    if (!signer) {
+      setStatus('Wallet not connected');
       return;
     }
 
     setIsSending(true);
-    setStatus(`Fetching USDC decimals...`);
     setResults([]);
+    setCurrentStep(0);
 
-    const contract = new ethers.Contract(usdcAddress, USDC_ABI, signer);
-    const decimals = await contract.decimals();
     const key = `payoutHistory_${walletAddress.toLowerCase()}`;
     const existingHistory = JSON.parse(localStorage.getItem(key)) || [];
     let tempResults = [];
 
-    for (let i = 0; i < payouts.length; i++) {
-      const { address, amount } = payouts[i];
+    for (const [index, payout] of payouts.entries()) {
       try {
-        const amountInWei = ethers.parseUnits(amount, decimals);
-        setStatus(`Sending ${amount} USDC to ${address} (${i + 1}/${payouts.length})...`);
-
-        const tx = await contract.transfer(address, amountInWei);
-        await tx.wait();
-
+        setStatus(`Processing ${index + 1}/${payouts.length}...`);
+        const result = await sendCrossChainPayout(payout);
+        
         const newEntry = {
-          address,
-          amount,
-          txHash: tx.hash,
+          ...payout,
+          txHash: result.txHash,
           date: new Date().toISOString(),
-          chainId,
+          fromChainId: chainId,
+          toChainId: result.toChainId,
         };
 
-        tempResults.push({ ...newEntry, error: null });
+        tempResults.push(newEntry);
+        setResults([...tempResults]);
 
-        const updatedHistory = [...existingHistory, newEntry].slice(-100); // Limit to last 100
-        localStorage.setItem(key, JSON.stringify(updatedHistory));
+        localStorage.setItem(
+          key,
+          JSON.stringify([...existingHistory, newEntry].slice(-100))
+        );
       } catch (error) {
-        tempResults.push({ address, amount, txHash: null, error: error.message });
+        tempResults.push({ ...payout, error: error.message });
+        setResults([...tempResults]);
       }
-
-      setResults([...tempResults]);
     }
 
-    setStatus('✅ Payouts complete');
+    setStatus('✅ All payouts completed');
     setIsSending(false);
+    setCurrentStep(3);
   };
 
-  const etherscanBase = {
-    1: 'https://etherscan.io/tx/',
-    137: 'https://polygonscan.com/tx/',
-    42161: 'https://arbiscan.io/tx/',
-    10: 'https://optimistic.etherscan.io/tx/',
-  }[chainId];
+  // Step tracker UI
+  const steps = [
+    'Preparing',
+    'Routing',
+    'Sending',
+    'Complete'
+  ];
 
   return (
-    <div className="payout-sender mt-6 p-6 bg-white rounded-2xl shadow-md border border-gold">
-      <h2 className="text-xl font-semibold mb-4">Send USDC Payouts</h2>
-      <button
-        onClick={sendPayouts}
-        disabled={isSending || payouts.length === 0}
-        className={`bg-blue-500 text-white px-4 py-2 rounded-xl hover:bg-blue-600 ${isSending ? 'opacity-50' : ''}`}
+    <div className="payout-sender">
+      <h2>Cross-Chain USDC Payouts</h2>
+      
+      {/* Step Tracker */}
+      <div className="step-tracker">
+        {steps.map((step, i) => (
+          <div 
+            key={i} 
+            className={`step ${i <= currentStep ? 'active' : ''}`}
+          >
+            {step}
+          </div>
+        ))}
+      </div>
+
+      <button 
+        onClick={sendPayouts} 
+        disabled={isSending || !payouts.length}
       >
-        {isSending ? 'Sending...' : `Send ${payouts.length} Payouts`}
+        {isSending ? 'Processing...' : `Send ${payouts.length} Payouts`}
       </button>
 
-      {status && <p className="mt-2 text-blue-600 font-medium">{status}</p>}
+      {status && <div className="status">{status}</div>}
 
       {results.length > 0 && (
         <div className="mt-4 overflow-x-auto">
