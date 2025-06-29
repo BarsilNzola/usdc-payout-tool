@@ -78,18 +78,33 @@ function App() {
       </main>
 
       <footer className="app-footer">
-        <div className="footer-section">
-          <h3>Powered By</h3>
-          <div className="tech-stack">
-            <img src="https://li.fi/logo.svg" alt="LI.FI" width="80" />
-            <img src="https://metamask.io/metamask-icon.svg" alt="MetaMask" width="30" />
-            <img src="https://cctp.circle.com/logo.svg" alt="CCTP" width="80" />
+        <div className="footer-grid">
+          {/* Column 1: Powered By */}
+          <div className="footer-column">
+            <h4>Powered By</h4>
+            <div className="tech-stack-compact">
+              <img src="https://li.fi/logo.svg" alt="LI.FI" />
+              <img src="https://metamask.io/metamask-icon.svg" alt="MetaMask" />
+              <img src="https://cctp.circle.com/logo.svg" alt="CCTP" />
+            </div>
           </div>
-        </div>
-        <div className="footer-section">
-          <p>
-            <strong>Need help?</strong> Contact: theforeverknights1@gmail.com
-          </p>
+
+          {/* Column 2: Contact */}
+          <div className="footer-column">
+            <h4>Contact</h4>
+            <div className="contact-info">
+              <div>theforeverknights1@gmail.com</div>
+            </div>
+          </div>
+
+          {/* Column 3: Donations */}
+          <div className="footer-column">
+            <h4>Donate</h4>
+            <div className="contact-info">
+              <div>ETH: <span className="wallet-address">0x78fE31D333aec6Be5EBF57854b635f3d1C614F22</span></div>
+              <div>BTC: <span className="wallet-address">bc1q9wnzq42c0nz8659hajq3820e5pgn5t342e2wcz</span></div>
+            </div>
+          </div>
         </div>
       </footer>
     </div>

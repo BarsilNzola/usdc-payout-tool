@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import Papa from 'papaparse';
+import { ethers } from 'ethers';
 import { Tooltip } from 'react-tooltip';
+import 'react-tooltip/dist/react-tooltip.css';
 
 function CSVUploader({ onDataParsed }) {
   const [data, setData] = useState([]);
