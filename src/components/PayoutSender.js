@@ -13,23 +13,31 @@ const USDC_ADDRESS = {
   10: '0x7F5c764cBc14f9669B88837ca1490cCa17c31607',
 };
 
-function PayoutSender({ payouts, signer, chainId }) {
+function PayoutSender({ payouts, signer, chainId, walletAddress }) {
   const [status, setStatus] = useState(null);
   const [isSending, setIsSending] = useState(false);
-  const [results, setResults] = useState([]); // store { address, amount, txHash, error }
+  const [results, setResults] = useState([]);
 
   const sendPayouts = async () => {
-    if (!signer || !chainId) return setStatus('Wallet not connected or unsupported network.');
+    if (!signer || !chainId || !walletAddress) {
+      setStatus('Wallet not connected or unsupported network.');
+      return;
+    }
+
     const usdcAddress = USDC_ADDRESS[chainId];
-    if (!usdcAddress) return setStatus('Unsupported network.');
+    if (!usdcAddress) {
+      setStatus('Unsupported network.');
+      return;
+    }
 
     setIsSending(true);
     setStatus(`Fetching USDC decimals...`);
-    setResults([]); // reset old results
+    setResults([]);
 
     const contract = new ethers.Contract(usdcAddress, USDC_ABI, signer);
     const decimals = await contract.decimals();
-
+    const key = `payoutHistory_${walletAddress.toLowerCase()}`;
+    const existingHistory = JSON.parse(localStorage.getItem(key)) || [];
     let tempResults = [];
 
     for (let i = 0; i < payouts.length; i++) {
@@ -41,10 +49,22 @@ function PayoutSender({ payouts, signer, chainId }) {
         const tx = await contract.transfer(address, amountInWei);
         await tx.wait();
 
-        tempResults.push({ address, amount, txHash: tx.hash, error: null });
+        const newEntry = {
+          address,
+          amount,
+          txHash: tx.hash,
+          date: new Date().toISOString(),
+          chainId,
+        };
+
+        tempResults.push({ ...newEntry, error: null });
+
+        const updatedHistory = [...existingHistory, newEntry].slice(-100); // Limit to last 100
+        localStorage.setItem(key, JSON.stringify(updatedHistory));
       } catch (error) {
         tempResults.push({ address, amount, txHash: null, error: error.message });
       }
+
       setResults([...tempResults]);
     }
 
@@ -80,12 +100,12 @@ function PayoutSender({ payouts, signer, chainId }) {
                 <th className="py-2 px-4 text-left">Address</th>
                 <th className="py-2 px-4 text-left">Amount</th>
                 <th className="py-2 px-4 text-left">Transaction</th>
-                <th className="py-2 px-4 text-left">Error</th>
+                <th className="py-2 px-4 text-left">Status</th>
               </tr>
             </thead>
             <tbody>
               {results.map((r, i) => (
-                <tr key={i} className="even:bg-gray-50">
+                <tr key={i} className={`even:bg-gray-50 ${r.error ? 'bg-red-50' : ''}`}>
                   <td className="py-2 px-4 font-mono">{r.address}</td>
                   <td className="py-2 px-4">{r.amount}</td>
                   <td className="py-2 px-4">
@@ -95,7 +115,13 @@ function PayoutSender({ payouts, signer, chainId }) {
                       </a>
                     ) : '—'}
                   </td>
-                  <td className="py-2 px-4 text-red-500">{r.error || ''}</td>
+                  <td className="py-2 px-4">
+                    {r.error ? (
+                      <span className="text-red-600 font-bold">❌ {r.error}</span>
+                    ) : (
+                      <span className="text-green-600 font-bold">✅ Success</span>
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>
