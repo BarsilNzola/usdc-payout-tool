@@ -73,12 +73,60 @@ body {
 /* ===== COMPONENT SPECIFIC STYLES ===== */
 
 /* Wallet Connect Component */
-.wallet-connect-card {
+.wallet-connect-container {
   display: flex;
   flex-direction: column;
   gap: 1rem;
+  background: #fff;
+  padding: 1.5rem;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  max-width: 400px;
+  margin: 0 auto;
+  font-family: sans-serif;
 }
 
+.wallet-connect-button {
+  padding: 10px 20px;
+  background-color: var(--primary, #007bff);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.2s, opacity 0.2s;
+}
+
+.wallet-connect-button:hover {
+  opacity: 0.9;
+}
+
+.wallet-connect-button.connected {
+  background-color: var(--success, #28a745);
+}
+
+.wallet-connect-button:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+.wallet-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 1rem;
+  background: #f9fafb;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #333;
+}
+
+.status-text {
+  font-size: 14px;
+  color: #666;
+}
+
+/* Backward compatibility for old classnames */
 .connect-button {
   padding: 10px 20px;
   background-color: var(--primary);
@@ -89,11 +137,9 @@ body {
   cursor: pointer;
   transition: background-color 0.2s;
 }
-
 .connect-button.connected {
   background-color: var(--success);
 }
-
 .connect-button:hover {
   opacity: 0.9;
 }
