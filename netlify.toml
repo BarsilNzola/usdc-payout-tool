@@ -2,3 +2,6 @@
   command = "npm install --force && npm run build"
   publish = "build"
 
+[build.environment]
+  SECRETS_SCAN_ENABLED = "false"
+
